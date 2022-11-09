@@ -4,159 +4,66 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_system.h"
-#include "esp_spi_flash.h"
-#include "my_gpio.h"
+#include “myTimer.h”
+#include “myUart.h”
 
-#define LED_LINE0   eGpioNum23
-#define LED_LINE1   eGpioNum22
+// UART 0
+#define PC_UART_PORT    (0)
+#define PC_UART_RX_PIN  (3)
+#define PC_UART_TX_PIN  (1)
 
-#define BTN_GPIO    eGpioNum5
+#define CLOCK_X_POS     5
+#define CLOCK_Y_POS     5
 
-#define NUM_LED_PER_COLOR 9
-
-// Enumerations
-typedef enum LedColor_tag
+struct
 {
-  eRedLed = 0,
-  eGreenLed = 1,
-  eNumOfColors = 2
-}eLedColor_t;
+    uint32_t seconds:8;
+    uint32_t minutes:8;
+    uint32_t hours:8;
+}clockTime;
 
-typedef enum ButtonState_tag
+
+void clockInit(uint8_t hh, uint8_t mm, uint8_t ss)
 {
-    eBtnUndefined = 0,
-    eBtnShortKeyPress,
-    eBtnDoubleKeyPress,
-    eBtnLongKeyPress
-} eButtonState_t;
-
-typedef enum GameState_tag
-{
-    eGameRestart = 0,
-    eOngoingGame, 
-    eStalemate, 
-    eRedPlayerWin, 
-    eGreenPlayerWin
-} eGameState_t;
-
-typedef struct BoardState_tag
-{
-    bool gameBoard[eNumOfColors][NUM_LED_PER_COLOR];
-    uint8_t cursor;
-    eLedColor_t currentColor;
-}sBoardState_t;
-
-// Global variable
-uint32_t _millis;
-
-void delayMs(uint16_t ms)
-{
-    vTaskDelay(ms / portTICK_PERIOD_MS);
+    clockTime.hours = hh;
+    clockTime.minutes = mm;
+    clockTime.seconds = ss;
 }
 
-static void initIO(void)
+void clockUpdate(void)
 {
-    // FIXME:
-    // Replace the following code and insert
-    // code to initialize all IO pins for the assigment
-    gpio_init(BTN_GPIO, eInput);
-
+    // TODO Fixme: Add logic to count hours, minutes and seconds
+    clockTime.seconds++;
 }
 
-void displayBoard(sBoardState_t *boardState)
+void clockDisplay(void)
 {
-    // FIXME:
-    // Display current board status specified in argument boardState.gameBoard[][]
-    if (gpio_read(BTN_GPIO) == eLow)
-    {
-        gpio_init(LED_LINE0, eOutput);
-        gpio_init(LED_LINE1, eOutput);
-        gpio_write(LED_LINE0, eHigh);
-        gpio_write(LED_LINE1, eHigh);
-        delayMs(500); 
-        // Hint: there is a line missing here
-        gpio_write(LED_LINE0, eInput);
-        gpio_write(LED_LINE1, eInput);
-        delayMs(100); 
-    }
+    char str[10];
+    uartGotoxy(0,CLOCK_X_POS,CLOCK_Y_POS);
+    // TODO Fix me: Add HH:MM:SS print format
+    myItoa(clockTime.seconds,cad,10);
+    uartPuts(0,cad);
 }
 
-eGameState_t checkBoard(sBoardState_t *boardState, eButtonState_t buttonState)
+int app_main()
 {
-    // check player input
-    switch (buttonState)
-    {
-        case eBtnShortKeyPress:
-            boardState->cursor = (boardState->cursor + 1) % NUM_LED_PER_COLOR;
-            break;
-        case eBtnDoubleKeyPress:
-            boardState->cursor = (boardState->cursor - 1) % NUM_LED_PER_COLOR;
-            break;
-        case eBtnLongKeyPress:
-            boardState->gameBoard[boardState->currentColor][boardState->cursor] = true;
-            boardState->currentColor = (boardState->currentColor == eRedLed)? eGreenLed : eRedLed;
-            break;
-        default:
-            break;
-    } 
-    // FIXME
-    // Check next available cursor position, if no available position is found, then stalmate condition has been met
-    // Check if any vertical, horizontal or diagonal 3 adjacent spaces are filled by the same color
-    // If so, then a winner is found and return the corresponding game state
-    return eOngoingGame;
-}
+    
+    uartInit(PC_UART_PORT, 57600, 8, 1, 2, PC_UART_TX_PIN,PC_UART_RX_PIN);
+    delayMs(500);
+    uartClrScr(PC_UART_PORT);
 
-bool playSequence(eGameState_t gameState)
-{
-    // FIXME:
-    // Playback the corresponding animation of the gameState parameter
-    // Once playback has finished, return true, otherwise return false
-    return true;
-}
+    timer0Init();
+    clockInit(23,59,50);
 
-eButtonState_t checkButton(void)
-{
-    // FIXME:
-    // Polls the button and returns the press state
-    return eBtnUndefined;
-}
-
-int app_main(void)
-{
-    eGameState_t  currentGameState = eGameRestart;
-    eButtonState_t buttonState;
-    sBoardState_t boardState;
-    initIO();
-
-    while(1)
-    {   
-        buttonState = checkButton();
-        
-        switch(currentGameState)
-        {
-            case eGameRestart:
-                for (uint8_t idx = 0; idx < NUM_LED_PER_COLOR; idx++ )
-                {
-                    boardState.gameBoard[eRedLed][idx] = false;
-                    boardState.gameBoard[eGreenLed][idx] = false;
-                    boardState.cursor = 0;
-                    boardState.currentColor = eRedLed;
-                }
-                currentGameState = eOngoingGame;
-                break;
-            case eOngoingGame:
-                if (buttonState != eBtnUndefined)
-                    currentGameState = checkBoard(&boardState, buttonState);
-                displayBoard(&boardState);
-                break;
-            case eStalemate:
-            case eRedPlayerWin:
-            case eGreenPlayerWin:
-                if (!playSequence(currentGameState))
-                    currentGameState = eGameRestart;
-            break;
+    while(1){ 
+        if( timer0SecFlag() ) 
+        { 
+            clockUpdate();
+            clockDisplay();
         }
-        delayMs(1);
-        _millis++;
-    }
+
+        // Prevent watchdog fault
+        delayMs(10);
+    } 
+    return 0; 
 }
