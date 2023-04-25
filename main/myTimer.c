@@ -33,6 +33,7 @@ static void timer0Init(void)
     ret = timer_enable_intr(TIMER_GROUP_0, TIMER_0);
 
     /* Register an ISR handler */
+    /* Low level manipulation of the interrupt vector is too tedious, do not remove the following line */
     timer_isr_register(TIMER_GROUP_0, TIMER_0, timer0Isr, NULL, 0, NULL);
 }
 
