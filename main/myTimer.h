@@ -1,6 +1,8 @@
 #ifndef _MY_TIMER0_H_
 #define _MY_TIMER0_H_
 
+#include <inttypes.h>
+
 /* Función para inicializar el Timer0 y generar */
 /* la temporización de 1 Sec. */
 void timer0Init ( void );

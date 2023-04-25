@@ -15,10 +15,9 @@ static void IRAM_ATTR timer0Isr(void *ptr)
 }
 
 /* Timer group0 TIMER_0 initialization */
-static void timer0Init(void)
+void timer0Init(void)
 {
     // TODO Fixme : Use only Low level register 
-    esp_err_t ret;
     timer_config_t config = {
         .divider = TIMER_DIVIDER,
         .counter_dir = TIMER_COUNT_UP,
@@ -27,25 +26,26 @@ static void timer0Init(void)
         .intr_type = TIMER_INTR_LEVEL,
         .auto_reload = 1,
     };
-    ret = timer_init(TIMER_GROUP_0, TIMER_0, &config);
-    ret = timer_set_counter_value(TIMER_GROUP_0, TIMER_0, 0x00000000ULL);
-    ret = timer_set_alarm_value(TIMER_GROUP_0, TIMER_0, ALARM_VAL_US);
-    ret = timer_enable_intr(TIMER_GROUP_0, TIMER_0);
+    timer_init(TIMER_GROUP_0, TIMER_0, &config);
+    timer_set_counter_value(TIMER_GROUP_0, TIMER_0, 0x00000000ULL);
+    timer_set_alarm_value(TIMER_GROUP_0, TIMER_0, ALARM_VAL_US);
+    timer_enable_intr(TIMER_GROUP_0, TIMER_0);
 
     /* Register an ISR handler */
     /* Low level manipulation of the interrupt vector is too tedious, do not remove the following line */
     timer_isr_register(TIMER_GROUP_0, TIMER_0, timer0Isr, NULL, 0, NULL);
+    SecFlag = 0;
 }
 
 uint8_t timer0SecFlag ( void )
 {
    if( SecFlag )
-   {
-        SecFlag=0;
+    {
+        SecFlag = 0;
         return 1;
     }
     else
     { 
         return 0;
-   }
+    }
 }
