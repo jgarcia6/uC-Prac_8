@@ -25,6 +25,7 @@ void timer0Init(void)
         .alarm_en = TIMER_ALARM_EN,
         .intr_type = TIMER_INTR_LEVEL,
         .auto_reload = 1,
+        .clk_src = TIMER_SRC_CLK_APB
     };
     timer_init(TIMER_GROUP_0, TIMER_0, &config);
     timer_set_counter_value(TIMER_GROUP_0, TIMER_0, 0x00000000ULL);

@@ -45,6 +45,11 @@ void clockDisplay(void)
     uartPuts(0,cad);
 }
 
+void delayMs(uint16_t ms)
+{
+    vTaskDelay(ms / portTICK_PERIOD_MS);
+}
+
 int app_main()
 {
     
